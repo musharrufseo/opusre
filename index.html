@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Advanced real-time multi-model AI chat powered by Puter.js — streaming, history, image analysis, TTS, and more. No API keys required." />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Puter Advanced AI Chat</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://js.puter.com" />
+</head>
+<body>
+  <div id="app" class="app">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar" aria-label="Chat history and settings">
+      <div class="sidebar-header">
+        <div class="brand">
+          <span class="brand-icon" aria-hidden="true">◈</span>
+          <span class="brand-text">Puter AI</span>
+        </div>
+        <button id="btn-new-chat" class="btn btn-primary btn-sm" title="New chat (Ctrl+N)">
+          <span aria-hidden="true">+</span> New chat
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">History</div>
+        <div id="history-list" class="history-list" role="list"></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button id="btn-settings" class="btn btn-ghost btn-block" title="Settings">
+          ⚙️ Settings
+        </button>
+        <button id="btn-clear-all" class="btn btn-ghost btn-block danger" title="Clear all history">
+          🗑️ Clear all
+        </button>
+        <a href="https://developer.puter.com" target="_blank" rel="noopener" class="footer-link">
+          Powered by Puter
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <header class="topbar">
+        <button id="btn-toggle-sidebar" class="btn btn-icon" aria-label="Toggle sidebar" title="Toggle sidebar">
+          ☰
+        </button>
+        <div class="model-selector-wrap">
+          <label for="model-select" class="sr-only">AI Model</label>
+          <select id="model-select" class="model-select" title="Select AI model">
+            <option value="anthropic/claude-opus-5-5">Claude Opus 5.5</option>
+            <option value="openai/gpt-5.5">GPT-5.5</option>
+            <option value="google/gemini-3.8-flash">Gemini 3.8 Flash</option>
+            <option value="xai/grok-4.7">Grok 4.7</option>
+            <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+            <option value="openai/gpt-5.4-nano">GPT-5.4 Nano (fast)</option>
+            <option value="anthropic/claude-sonnet-5-5">Claude Sonnet 5.5</option>
+            <option value="google/gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
+          </select>
+          <button id="btn-refresh-models" class="btn btn-icon" title="Refresh model list from Puter">↻</button>
+        </div>
+        <div class="topbar-actions">
+          <button id="btn-theme" class="btn btn-icon" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
+          <button id="btn-export" class="btn btn-icon" title="Export conversation as Markdown">↓</button>
+        </div>
+      </header>
+
+      <div id="chat-container" class="chat-container" role="log" aria-live="polite" aria-relevant="additions">
+        <div id="welcome" class="welcome">
+          <div class="welcome-icon">◈</div>
+          <h1>Advanced AI Chat</h1>
+          <p>Real-time streaming • Multi-model • History • Image analysis • TTS</p>
+          <p class="welcome-hint">Powered by <a href="https://developer.puter.com" target="_blank" rel="noopener">Puter.js</a> — no API keys, user-pays model.</p>
+          <div class="quick-prompts">
+            <button class="quick-prompt" data-prompt="Explain quantum computing in simple terms">Quantum computing</button>
+            <button class="quick-prompt" data-prompt="Write a short Python function that calculates Fibonacci numbers efficiently">Fibonacci code</button>
+            <button class="quick-prompt" data-prompt="What are the key differences between REST and GraphQL?">REST vs GraphQL</button>
+            <button class="quick-prompt" data-prompt="Give me 5 creative startup ideas in the AI space for 2026">Startup ideas</button>
+          </div>
+        </div>
+        <div id="messages" class="messages"></div>
+      </div>
+
+      <div id="status-bar" class="status-bar" hidden>
+        <span id="status-text"></span>
+        <button id="btn-stop" class="btn btn-sm danger" hidden>Stop</button>
+      </div>
+
+      <form id="composer" class="composer" autocomplete="off">
+        <div class="composer-toolbar">
+          <button type="button" id="btn-attach" class="btn btn-icon" title="Attach image (vision models)">📎</button>
+          <input type="file" id="file-input" accept="image/*" hidden />
+          <span id="attach-preview" class="attach-preview" hidden></span>
+          <button type="button" id="btn-tts" class="btn btn-icon" title="Read last reply aloud (TTS)" disabled>🔊</button>
+        </div>
+        <div class="composer-input-wrap">
+          <textarea
+            id="prompt-input"
+            rows="1"
+            placeholder="Message the AI… (Enter to send, Shift+Enter for newline)"
+            aria-label="Message input"
+          ></textarea>
+          <button type="submit" id="btn-send" class="btn btn-primary btn-send" title="Send (Enter)" disabled>
+            <span class="send-icon">↑</span>
+          </button>
+        </div>
+        <div class="composer-meta">
+          <span id="token-hint" class="hint">Streaming enabled • Local history</span>
+          <label class="stream-toggle">
+            <input type="checkbox" id="stream-toggle" checked />
+            Stream
+          </label>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settings-modal" class="modal" hidden role="dialog" aria-labelledby="settings-title" aria-modal="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel">
+      <header class="modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button class="btn btn-icon" data-close aria-label="Close">✕</button>
+      </header>
+      <div class="modal-body">
+        <label class="field">
+          <span>Temperature (0–2)</span>
+          <input type="range" id="opt-temperature" min="0" max="2" step="0.1" value="0.7" />
+          <span id="temp-value">0.7</span>
+        </label>
+        <label class="field">
+          <span>Max tokens (optional)</span>
+          <input type="number" id="opt-max-tokens" min="1" max="128000" placeholder="Model default" />
+        </label>
+        <label class="field">
+          <span>System prompt</span>
+          <textarea id="opt-system" rows="3" placeholder="You are a helpful assistant."></textarea>
+        </label>
+        <label class="field checkbox">
+          <input type="checkbox" id="opt-normalize" checked />
+          <span>Normalize responses (OpenAI-style)</span>
+        </label>
+        <label class="field checkbox">
+          <input type="checkbox" id="opt-save-history" checked />
+          <span>Save chat history to localStorage</span>
+        </label>
+        <div class="field">
+          <span>Custom model ID</span>
+          <div class="inline">
+            <input type="text" id="opt-custom-model" placeholder="e.g. anthropic/claude-opus-5-5" />
+            <button type="button" id="btn-add-model" class="btn btn-sm">Add</button>
+          </div>
+        </div>
+      </div>
+      <footer class="modal-footer">
+        <button class="btn btn-primary" data-close>Done</button>
+      </footer>
+    </div>
+  </div>
+
+  <script src="https://js.puter.com/v2/"></script>
+  <script src="app.js"></script>
+</body>
+</html>
